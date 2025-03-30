@@ -28,11 +28,15 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,6 +60,7 @@ import com.peteris.list.state.ListAction
 import com.peteris.list.state.ListState
 import com.peteris.list.state.RankingSeason
 import com.peteris.model.Driver
+import kotlinx.coroutines.flow.collectLatest
 import org.koin.androidx.compose.koinViewModel
 import com.peteris.designsystem.R as DesignResource
 
@@ -67,6 +72,18 @@ fun ListScreen(
     val viewModel: ListViewModel = koinViewModel()
     val state = viewModel.state.collectAsStateWithLifecycle(initialValue = ListState()).value
     val refreshState = rememberPullToRefreshState()
+    val snackHostState = remember {
+        SnackbarHostState()
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.snackBarEvent.collectLatest {
+            when (it) {
+                is ListViewModel.SnackBarEvent.ShowSnackBar ->
+                    snackHostState.showSnackbar(message = it.message)
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -74,6 +91,22 @@ fun ListScreen(
                 title = "F1 Driver list"
             )
         },
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackHostState,
+                snackbar = {
+                    Snackbar(
+                        snackbarData = it,
+                        modifier = Modifier.padding(
+                            horizontal = 8.dp,
+                            vertical = 32.dp
+                        ),
+                        contentColor = White,
+                        containerColor = Color.Black
+                    )
+                }
+            )
+        }
     ) { innerPadding ->
         Box(
             modifier = Modifier

@@ -9,8 +9,11 @@ import com.peteris.list.state.ListResult
 import com.peteris.list.state.ListState
 import com.peteris.list.state.RankingSeason
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
@@ -23,6 +26,9 @@ class ListViewModel(
 
     private val _state = MutableStateFlow(ListState())
     val state: StateFlow<ListState> = _state.asStateFlow()
+
+    private val _snackBarEvent = MutableSharedFlow<SnackBarEvent>(replay = 0)
+    val snackBarEvent: SharedFlow<SnackBarEvent> = _snackBarEvent.asSharedFlow()
 
     init {
         initialLoad()
@@ -58,6 +64,7 @@ class ListViewModel(
                 },
                 onFailure = {
                     setState(ListResult.SetIsOnline(false))
+                    _snackBarEvent.emit(SnackBarEvent.ShowSnackBar("Error occurred"))
                     sportsRepository.getLocalTeams()
                         .takeIf { it.isNotEmpty() }?.let { data ->
                             setState(ListResult.SetSeason(rankingSeason))
@@ -106,5 +113,9 @@ class ListViewModel(
                 ListResult.SetRefreshing -> it.copy(isRefreshing = true)
             }
         }
+    }
+
+    sealed class SnackBarEvent {
+        data class ShowSnackBar(val message: String) : SnackBarEvent()
     }
 }
